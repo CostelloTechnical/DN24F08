@@ -11,7 +11,9 @@ I have optimized this library to reduce RAM usage, so along with the control log
 *The DN24F08 board.*
 
 ## Library Features
+I have optimized this library to reduce the amount of RAM consumed in areas where it made sense to do so. For example, any constant array is accessed using PROGMEM. I also added a bare metal UART library so as to have control over the RX and TX buffer (the TX was completely removed) sizes which is not controllable using the Arduino Serial library.  
 
+The main motivation behind this was to allow me to play around with RTOS implementations as they usually require large (in ATmega328p terms) chunks of RAM.  
 
 ## Connectivity
 ### 1. Analog Inputs

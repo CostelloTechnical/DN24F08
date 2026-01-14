@@ -10,7 +10,7 @@
 
 extern "C" void USART_RX_vect(void);
 
-class BareSerial {
+class bareSerial {
 public:
     // Initialize the UART with a specific baud rate
     void begin(long baud) {

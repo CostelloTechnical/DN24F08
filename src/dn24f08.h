@@ -25,11 +25,11 @@
   It is highly encouraged that if you find this library useful, you provide
   attribution back to the original author.
 */
-#ifndef JCT_DN24F08_H
-#define JCT_DN24F08_H
+#ifndef DN24F08_H
+#define DN24F08_H
 #include <Arduino.h>
 #include <avr/pgmspace.h>
-#include "BareSerial.h"
+#include "bareSerial.h"
 
 enum buttonsInputs : uint8_t {
     KEY1 = 1,
@@ -256,6 +256,6 @@ class dn24f08 {
         char _receivedCharacter;
         uint8_t _receivedCharacterIndex = 0;
         char _receivedCharacters[_maxCharacters];
-        BareSerial _serialPort;
+        bareSerial _serialPort;
 };
 #endif

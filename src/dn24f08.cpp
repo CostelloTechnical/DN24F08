@@ -25,7 +25,7 @@
   It is highly encouraged that if you find this library useful, you provide
   attribution back to the original author.
 */
-#include "jct_dn24f08.h"
+#include "dn24f08.h"
 #include <avr/pgmspace.h>
 
 const uint8_t  dn24f08::_segmentCharacters[37] PROGMEM = { 
