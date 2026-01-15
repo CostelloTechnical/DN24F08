@@ -172,6 +172,18 @@ class dn24f08 {
         // Clears the 7 segment display.
         void displayClear();
 
+        // Prints an integer.
+        void print(int32_t number);
+
+        // Prints a float. Default precision is 2.
+        void print(float number, uint8_t precision = 2);
+        
+        // Prints an integer and newline.
+        void println(int32_t number);
+
+        // Prints a float and newline. Default precision is 2.
+        void println(float number, uint8_t precision = 2);
+
         // Print a c-string over RS485
         void print(const char *toPrint);
 
@@ -188,6 +200,9 @@ class dn24f08 {
         char* getReceivedCharacters();
 
     private:
+        // Converts float to string and stores it in _converter
+        void convertFloat(float val, uint8_t precision);
+
         // Writes to the three 74HC595D ICs controlling the digital outputs and 7 segment display.
         void setShift(uint8_t number, uint8_t digit, bool useDecimal);
         
@@ -231,7 +246,7 @@ class dn24f08 {
         uint16_t _averageCounter[_analogPins] = { 0, 0, 0, 0, 0, 0, 0, 0 };
         uint8_t _iterator = 0;
 
-        char _converter[20];
+        char _converter[25];
         uint8_t _outputValue = 0;
         uint8_t _inputValue = 0;
 

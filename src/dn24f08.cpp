@@ -369,7 +369,7 @@ void dn24f08::engine(){
 
 // Displays the float on the 7 segment display.
 void dn24f08::displayFloat(float number) {
-    dtostrf(number, 0, 3, _converter);
+    convertFloat(number, 3);
     uint8_t decimalIndex = (strchr(_converter, '.') - _converter);
     uint8_t decimalOffset = 0;
     for (uint8_t i = 0; i < 5; i++) {
@@ -377,6 +377,9 @@ void dn24f08::displayFloat(float number) {
         decimalOffset = 1;
       }  //
       else {
+        if(_converter[i] == '\0'){
+            break;
+        }
         setShift(_converter[i] - '0', i - decimalOffset, i == decimalIndex - 1);
       }
     }
@@ -401,6 +404,29 @@ void dn24f08::displayClear() {
     }
 }
 
+
+// Print Integer
+void dn24f08::print(int32_t number) {
+    ltoa(number, _converter, 10); // Standard AVR-libc integer convert
+    print(_converter);            // Calls your existing char* print
+}
+
+void dn24f08::println(int32_t number) {
+    ltoa(number, _converter, 10);
+    println(_converter);
+}
+
+// Print Float (Uses our new engine)
+void dn24f08::print(float number, uint8_t precision) {
+    convertFloat(number, precision); // Fills _converter
+    print(_converter);               // Sends it
+}
+
+void dn24f08::println(float number, uint8_t precision) {
+    convertFloat(number, precision);
+    println(_converter);
+}
+
 // Print a c-string over RS485
 void dn24f08::print(const char *toPrint){
     digitalWrite(_rxTxPin, true);
@@ -409,14 +435,6 @@ void dn24f08::print(const char *toPrint){
     digitalWrite(_rxTxPin, false);
 }
 
-// Print a float over RS485
-// void dn24f08::print(float toPrint){
-//     digitalWrite(_rxTxPin, true);
-//     delayMicroseconds(500);
-//     _serialPort.print(toPrint);
-//     digitalWrite(_rxTxPin, false);
-// }
-
 // Print a c-string over RS485 with a newline
 void dn24f08::println(const char *toPrint){
     digitalWrite(_rxTxPin, true);
@@ -424,6 +442,52 @@ void dn24f08::println(const char *toPrint){
     _serialPort.print(toPrint);
     _serialPort.write('\n');
     digitalWrite(_rxTxPin, false);
+}
+
+void dn24f08::convertFloat(float val, uint8_t precision) {
+    char *ptr = _converter; // Point to the class-wide buffer
+
+    // 1. Handle Special Cases
+    if (isnan(val)) { strcpy(ptr, "NaN"); return; }
+    if (isinf(val)) { strcpy(ptr, "Inf"); return; }
+    if (precision > 6) precision = 6;
+
+    // 2. Calculate Scale (Avoids pow() to save Flash)
+    unsigned long scale = 1;
+    for (uint8_t i = 0; i < precision; i++) scale *= 10;
+
+    // 3. Handle Sign
+    if (val < 0.0) {
+        *ptr++ = '-';
+        val = -val;
+    }
+
+    // 4. Rounding (The "0.5" trick)
+    val += 0.5 / (float)scale;
+
+    // 5. Extract Parts
+    uint32_t whole = (uint32_t)val;
+    uint32_t fraction = (uint32_t)((val - whole) * scale);
+
+    // 6. Write Whole Number
+    ultoa(whole, ptr, 10);
+    while (*ptr != '\0') ptr++; // Fast-forward pointer
+
+    // 7. Write Decimal & Fraction (Using the "Padding Trick")
+    if (precision > 0) {
+        *ptr++ = '.';
+        
+        char fracBuf[15];
+        // Add scale to force leading zeros (e.g. 5 becomes 105)
+        ultoa(fraction + scale, fracBuf, 10);
+        
+        // Skip the first character ('1') and copy the rest ('05')
+        char *fPtr = fracBuf + 1;
+        while (*fPtr) {
+            *ptr++ = *fPtr++;
+        }
+    }
+    *ptr = '\0'; // Terminate
 }
 
 // Returns true if the communication engine received a valid message.
