@@ -231,7 +231,7 @@ class dn24f08 {
         uint16_t _averageCounter[_analogPins] = { 0, 0, 0, 0, 0, 0, 0, 0 };
         uint8_t _iterator = 0;
 
-        char _converter[10];
+        char _converter[20];
         uint8_t _outputValue = 0;
         uint8_t _inputValue = 0;
 

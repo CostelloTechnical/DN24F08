@@ -1,82 +1,67 @@
-## Intro
-This is a library to control the DN24F08, a PLC type expansion board for the Arduino Nano form factor. However, this library was written specifically for the ATmega328p version.  
+# DN24F08 Arduino Library
 
-I came across the board on AliExpress and was curious enough to buy one as it was was only ~€20 at the time.  
+## Introduction
+This is a library to control the **DN24F08**, a PLC-style expansion board for the Arduino Nano form factor.  
+**Note:** This library was written specifically for the ATmega328p (Nano V3) version due to direct register manipulation.
 
-The board typically comes in a number of different forms, with or without DIN rail mount, relay or darlington array (DN23E08 or DN24F08 respectively) and 12V or 24V. The model I got was the 24V, DIN rail mount, darlington array version.  
-
-I have optimized this library to reduce RAM usage, so along with the control logic I have included an additional library for bare metal UART communication.  
-
-![board_image](./extras/images/DN24F08.jpg)  
-*The DN24F08 board.*
+The board typically comes in several variations: with or without DIN rail mounts, relay or Darlington array outputs (DN23E08 vs DN24F08), and 12V or 24V logic. This library was developed using the **24V, DIN rail mount, Darlington array** version.
 
 ## Library Features
-I have optimized this library to reduce the amount of RAM consumed in areas where it made sense to do so. For example, any constant array is accessed using PROGMEM. I also added a bare metal UART library so as to have control over the RX and TX buffer (the TX was completely removed) sizes which is not controllable using the Arduino Serial library.  
+* **RAM Optimization:** The library is optimized to reduce RAM usage (e.g., accessing constant arrays via `PROGMEM`).
+* **Bare Metal UART:** Includes a custom "bare metal" UART library to replace the heavy Arduino `Serial` class. This allows precise control over RX/TX buffer sizes (the TX buffer was removed entirely to save memory).
+* **RTOS Ready:** The low memory footprint makes this library ideal for use with RTOS implementations on the ATmega328p.
 
-The main motivation behind this was to allow me to play around with RTOS implementations as they usually require large (in ATmega328p terms) chunks of RAM.  
+![DN24F08 Board](./extras/images/DN24F08.jpg)
+*The DN24F08 board.*
 
-## Connectivity
+## Connectivity & Hardware
+
 ### 1. Analog Inputs
-The board has 8 analog inputs, 4 are used to measure voltage and 4 are for reading current.
+The board features 8 analog inputs: 4 for current and 4 for voltage.
 
-* **Current Reading:**
-    * Inputs: 4.
-    * Converter type: Shut Resistor.
-    * Board Names: I1-I4.
-    * Operating range: 0-20mA.
-    * Signal acquisition: Onboard ADC (A0-A3).
-
-The current inputs are passed through high precision shunt resistors and into an LM324DR quad Op-Amp, set up in a buffer configuration.
-
-* **Voltage Reading:**
-    * Inputs: 4.
-    * Converter type: Voltage divider.
-    * Board Names: V1-V4.
-    * Operating range: 0-10V.
-    * Signal acquisition: Onboard ADC (A4-A7).  
-
-The voltage inputs are passed through voltage dividers and into an LM324DR quad Op-Amp, set up in a buffer configuration.
+| Type | Board Names | Arduino Pins | Range | Conversion Method |
+| :--- | :--- | :--- | :--- | :--- |
+| **Current** | I1 - I4 | A0 - A3 | 0 - 20 mA | Shunt Resistor + LM324DR Buffer |
+| **Voltage** | V1 - V4 | A4 - A7 | 0 - 10 V | Voltage Divider + LM324DR Buffer |
 
 ### 2. Digital Inputs
-* Inputs: 8.
-* Type: NPN.
-* Board Names: IN1-IN8.
-* Operating range: 0-12V or 0-24V depending on the model.
-* Signal acquisition: 8-bit parallel-load shift register.
+* **Acquisition:** 74HC165 (8-bit parallel-load shift register).
+* **Type:** NPN (Sinking). The input must be pulled low (to ground) to register a signal.
+* **Range:** 0-12V or 0-24V (depending on board model).
 
-The board has 8 NPN opto-coupled digital inputs. NPN (sinking) meaning that the input has to be pulled low (to ground) to register a signal.  
-These 8 inputs are read using a 74HC165, this is an 8-bit parallel-load shift register.
+| Board Names | Arduino Mapping |
+| :--- | :--- |
+| IN1 - IN8 | Read via Shift Register |
 
-### 3. Buttons
-* Inputs: 4.
-* Type: NPN.
-* Board Names: KEY1-KEY4.
-* Operating range: 0-5V.
-* Signal acquisition: Digital input with internal pull-up resistor.  
+### 3. User Buttons
+There are 4 SMD buttons on the board.
 
-There are 4 SMD buttons on the board labeled KEY1-KEY4. These are coupled to pins D5-D8 respectively.
+| Board Name | Arduino Pin | Type |
+| :--- | :--- | :--- |
+| KEY1 | D5 | Input (Pull-up) |
+| KEY2 | D6 | Input (Pull-up) |
+| KEY3 | D7 | Input (Pull-up) |
+| KEY4 | D8 | Input (Pull-up) |
 
 ### 4. Digital Outputs
-* Outputs: 8.
-* Type: NPN.
-* Board Names: OUT1-OUT8.
-* Operating range: 0-12V or 0-24V depending on the model.
-* Signal generation: 8-bit parallel-out shift register.
+The outputs are controlled by a daisy chain of **74HC595D** shift registers. The final register in the chain drives a **ULN2803** Darlington transistor array (NPN output with built-in flyback diodes).
 
-The 8 digital outputs are controlled using a 74HC595D, which is an 8-bit parallel-out shift register. There are three 74HC595D's on the board and are connected in series, with the first two controlling the seven segment display and the final one in the chain controls the digital outputs. The outputs from the last 74HC595D are connected to the inputs of a ULN2803, an 8-channel darlington transistor array. This chip is designed for controlling high voltage, high current inductive loads with an NPN output and features a built in flyback diode.
+* **Outputs:** 8
+* **Board Names:** OUT1 - OUT8
+* **Range:** 0-50V
 
-### 5. Four Character, Seven Segment Display
-* Outputs: 12
-* Type: LED (4 character, 7 segment display)
-* Operating range: 0-5V.
-* Signal generation: Two 8-bit parallel-out shift registers.
+### 5. Seven Segment Display
+* **Size:** 4 Character, 7 Segment.
+* **Control:** Driven by two 74HC595D shift registers (part of the same chain as the digital outputs).
 
-The seven segment display is controlled using 2 74HC595D in series.
+### 6. RS485 Communication
+* **Chip:** SP485.
+* **Board Names:** A+ and B-.
+* **Pins:** Hardwired to the Nano's RX/TX pins.
+* **Control Pin:** D13 is used to toggle Receive/Transmit modes (handled automatically by the library).
 
-### 6. RS485
-* Type: Serial communication.
-* Board Names: A+ and B-.
+**Important:**
+1.  **DIP Switch:** To use RS485, the onboard DIP switch must be in the `485_ON` position.
+2.  **Programming:** To upload code to the Nano via USB, you must switch the DIP switch to the `PRO` position.
 
-This board has a DIP switch located beside the RX and TX pins on the Nano. To use the RS485 chip (SP485), this must be in the "485_ON" position. If you need to program the Nano via USB, the DIP switch must be in the "PRO" position. When using the SP485, there is also receive/transmit pin that must be toggled which is connected to D13 on the Nano (This is taken care of in the library).
-
-## Conclusion
+---

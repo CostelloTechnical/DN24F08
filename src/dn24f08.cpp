@@ -409,6 +409,14 @@ void dn24f08::print(const char *toPrint){
     digitalWrite(_rxTxPin, false);
 }
 
+// Print a float over RS485
+// void dn24f08::print(float toPrint){
+//     digitalWrite(_rxTxPin, true);
+//     delayMicroseconds(500);
+//     _serialPort.print(toPrint);
+//     digitalWrite(_rxTxPin, false);
+// }
+
 // Print a c-string over RS485 with a newline
 void dn24f08::println(const char *toPrint){
     digitalWrite(_rxTxPin, true);
