@@ -108,9 +108,6 @@ class dn24f08 {
         // Set the value of a single output. (Updated with display engine)
         void setOutput(uint8_t output, bool state);
 
-        // Set the offset and gain of an analog input.
-        void setAnalogCalibration(analogInputs input, float gain, float offset);
-
         /*  Set the type of analog engine to be used, a time or readings based system.
             The value is either milliseconds or number oif readings.*/
         void setAnalogEngineType(engineAverageType type, uint16_t value);
@@ -184,6 +181,10 @@ class dn24f08 {
         // Prints a float and newline. Default precision is 2.
         void println(float number, uint8_t precision = 2);
 
+        void print(const __FlashStringHelper *toPrint);
+
+        void println(const __FlashStringHelper *toPrint);
+
         // Print a c-string over RS485
         void print(const char *toPrint);
 
@@ -205,13 +206,28 @@ class dn24f08 {
 
         // Writes to the three 74HC595D ICs controlling the digital outputs and 7 segment display.
         void setShift(uint8_t number, uint8_t digit, bool useDecimal);
+
+        struct systemStates{
+            uint8_t useStartCharacter  : 1;
+            uint8_t dataReady          : 1;
+            uint8_t receivingData      : 1;
+            uint8_t timedOut           : 1;
+            uint8_t analogAverageType  : 1;
+            uint8_t analogPinIterator  : 3;
+        }_system = {0, 0, 0, 0, 0, 0};
+
+        struct displayStates{
+            uint8_t update     : 1;
+            uint8_t type       : 2;
+            uint8_t analogPin  : 3;
+        }_display= {0, 0, 0};
         
         static const uint8_t _buttons = 4;
         static const uint8_t _keys[_buttons];
  
         uint8_t _checkButtons = 0;  // This variables holds the state for all the buttons. Values are set using bitwise.
-        uint8_t _pressed_flags = 0; // This variables holds the state for all the buttons. Values are set using bitwise.
-        uint32_t _checkCache_ms[_buttons] = {0, 0, 0, 0};
+        uint8_t _pressedFlags = 0;  // This variables holds the state for all the buttons. Values are set using bitwise.
+        uint16_t _checkCache_ms[_buttons] = {0, 0, 0, 0};
         static const uint16_t _debounce_ms = 250;
 
         static const uint8_t _inData = 2;
@@ -238,34 +254,25 @@ class dn24f08 {
 
         static const uint8_t _analogPins = 8;
         static const uint8_t _analogInputPins[_analogPins];
-        float _gains[_analogPins] = { 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 };
-        float _offsets[_analogPins] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+        static const float _gains[_analogPins];
+        static const float _offsets[_analogPins];
+
         float _averageAnalog[_analogPins] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
         uint32_t _averageSum[_analogPins] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-        uint32_t _averageTime_ms[_analogPins] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+        uint16_t _averageTime_ms[_analogPins] = { 0, 0, 0, 0, 0, 0, 0, 0 };
         uint16_t _averageCounter[_analogPins] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-        uint8_t _iterator = 0;
 
         char _converter[25];
         uint8_t _outputValue = 0;
         uint8_t _inputValue = 0;
 
-        uint8_t _displayType = 0;
-        uint8_t _displayAnalogPin = 0;
         uint16_t _displayNumber = 0;
-        bool _update = false;
 
-        uint8_t _analogAverageType = 0;
         uint16_t _analogAverageValue = 100;
 
-        bool _useStartCharacter = false;
-        bool _dataReady = false;
-        bool _receivingData  = false;
-        bool _timedOut = false;
         uint16_t _timeout;
-        uint32_t _timeoutCache = millis();
+        uint16_t _timeoutCache = millis();
         static const uint8_t _maxCharacters = 50;
-        uint8_t _element = 0;
         char _startCharacter;
         char _endCharacter;
         char _receivedCharacter;

@@ -7,7 +7,6 @@ void setup() {
 
   plc.setDisplayEngineType(ANALOG);
   plc.setDisplayAnalogPin(V1);
-  plc.setAnalogCalibration(V1, 1.1029, 0.0459);
   plc.setAnalogEngineType(TIME_MS, 100);
 }
 

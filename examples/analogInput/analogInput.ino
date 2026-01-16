@@ -7,9 +7,6 @@ uint32_t printTimeCache_ms = 0;
 void setup() {
   plc.init();
 
-  // Optional - Sets the gain and offset for a given analog input.
-  plc.setAnalogCalibration(V1, 1.1029, 0.0459);
-
   /* 
     Optional - Only for use with the engineAnalogAverage() function. 
     This set if the averaging should be time based or number of readings based, followed by the time/readings.

@@ -7,7 +7,7 @@
   If using the RS485 IC, be sure to change the on-board switch to 485_ON. Otherwise leave it on PRO.
 */
 
-#include <jct_dn24f08.h>
+#include "dn24f08.h"
 
 dn24f08 plc;
 

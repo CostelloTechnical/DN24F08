@@ -28,6 +28,16 @@
 #include "dn24f08.h"
 #include <avr/pgmspace.h>
 
+const float dn24f08::_gains[dn24f08::_analogPins] PROGMEM = { 
+    1.0, 1.0, 1.0, 1.0,  // Current input gains.
+    1.0, 1.0, 1.0, 1.0   // Voltage input gains.
+};
+
+const float dn24f08::_offsets[dn24f08::_analogPins] PROGMEM = { 
+    0.0, 0.0, 0.0, 0.0,  // Current input offsets.
+    0.0, 0.0, 0.0, 0.0   // Voltage input offsets.
+};
+
 const uint8_t  dn24f08::_segmentCharacters[37] PROGMEM = { 
     0xFC, 0x60, 0xDA, 0xF2, 0x66, 0xB6, 
     0xBE, 0xE0, 0xFE, 0xF6, 0xEE, 0x3E, 
@@ -54,7 +64,10 @@ dn24f08* dn24f08::_classPointer = nullptr;
 volatile uint8_t dn24f08::_previousPortB = 0;
 volatile uint8_t dn24f08::_previousPortD = 0;
 
-dn24f08::dn24f08(){}
+dn24f08::dn24f08(){
+    _system = {};
+    _display = {};
+}
 
 // Initializer if not intending to use the Serial class.
 void dn24f08::init(){
@@ -93,7 +106,7 @@ void dn24f08::init(){
     pinMode(pgm_read_byte(&_analogInputPins[V3]), INPUT);
     pinMode(pgm_read_byte(&_analogInputPins[V4]), INPUT);
 
-    PCICR |= B00000101; // Enables pin change interrupts on ports B and D. 
+    PCICR |= B00000101;  // Enables pin change interrupts on ports B and D. 
     PCMSK0 |= B00000001; // Enables pin change interrupt on port B, pin 0. Pin 8 on the nano.
     PCMSK2 |= B11100000; // Enables pin change interrupts on port D. These are pins 5, 6, 7 on the nano.
     
@@ -101,7 +114,7 @@ void dn24f08::init(){
     _previousPortD = PIND; // Initialize the port b reading.
 
     setOutputs(0); // This sets the value of the digital outputs to zero. It's updated in display clear.
-    _update = true; // Forces an update in display clear.
+    _display.update = true; // Forces an update in display clear.
     displayClear(); // Clears the display and updates the digital outputs.
 }
 
@@ -112,7 +125,7 @@ void dn24f08::init(uint32_t baud,  char startCharacter, char endCharacter, uint1
     digitalWrite(_rxTxPin, false);
 
     _timeout = timeout;
-    _useStartCharacter = true;
+    _system.useStartCharacter = true;
     _startCharacter = startCharacter;
     _endCharacter = endCharacter;
 }
@@ -124,7 +137,7 @@ void dn24f08::init(uint32_t baud, char endCharacter, uint16_t timeout){
     digitalWrite(_rxTxPin, false);
 
     _timeout = timeout;
-    _useStartCharacter = false;
+    _system.useStartCharacter = false;
     _endCharacter = endCharacter;
     }
 
@@ -136,7 +149,7 @@ void dn24f08::setOutputs(uint8_t outputs){
 // Set the value of a single output. (Updated with display engine)
 void dn24f08::setOutput(uint8_t output, bool state){
     if(output <= 8 && output > 0){
-        _update = true;
+        _display.update = true;
         output --;
         if(state){
             _outputValue |= (1 << output);
@@ -147,28 +160,22 @@ void dn24f08::setOutput(uint8_t output, bool state){
     }
 }
 
-// Set the offset and gain of an analog input.
-void dn24f08::setAnalogCalibration(analogInputs input, float gain, float offset){
-    _gains[input] = gain;
-    _offsets[input] = offset;
-}
-
 /*  Set the type of analog engine to be used, a time or readings based system.
     The value is either milliseconds or number oif readings.*/
 void dn24f08::setAnalogEngineType(engineAverageType type, uint16_t value){
-    _analogAverageType = type;
+    _system.analogAverageType = type;
     _analogAverageValue = value;
 }
 
 // Set if the display should be cleared, show an analog input or an integer.
 void dn24f08::setDisplayEngineType(engineDisplayType type){
-    _displayType = type;
-    _update = true;
+    _display.type = type;
+    _display.update = true;
 }
 
 // Set the analog pin value to display.
 void dn24f08::setDisplayAnalogPin(analogInputs pin){
-    _displayAnalogPin = pin;
+    _display.analogPin = pin;
 }
 
 // Set the integer value to display.
@@ -187,8 +194,8 @@ void dn24f08::setCheckButton(uint8_t pin){
 // Returns if a button press was registered.
 bool dn24f08::getKeyPressed(uint8_t key){
     if(key > 0 && key < _buttons + 1){
-        bool pressed = ((_pressed_flags >> key - 1) & 1);
-        _pressed_flags &= ~(1 << (key -1));
+        bool pressed = ((_pressedFlags >> key - 1) & 1);
+        _pressedFlags &= ~(1 << (key -1));
         return pressed;
     }
 }
@@ -231,11 +238,11 @@ bool dn24f08::getInput(uint8_t input){
 float dn24f08::getAnalog(analogInputs input){
     if(input >= I1 && input <= I4){
         // Returns  milliamps for I1-I4.
-        return (analogRead(pgm_read_byte(&_analogInputPins[input])) * 20.0 / 1023.0) * _gains[input] + _offsets[input];
+        return (analogRead(pgm_read_byte(&_analogInputPins[input])) * 20.0 / 1023.0) * pgm_read_float(&_gains[input]) + pgm_read_float(&_offsets[input]);
     }
     else if( input >= V1 && input <= V4 ){
         // Returns a voltage for V1-V4.
-        return (analogRead(pgm_read_byte(&_analogInputPins[input])) * 10.0 / 1023.0) * _gains[input] + _offsets[input];
+        return (analogRead(pgm_read_byte(&_analogInputPins[input])) * 10.0 / 1023.0) * pgm_read_float(&_gains[input]) + pgm_read_float(&_offsets[input]);
     }
 }
 
@@ -243,59 +250,59 @@ float dn24f08::getAnalog(analogInputs input){
 float dn24f08::getAnalogAverage(analogInputs input){
     if(input >= I1 && input <= I4){
         // Returns average milliamps for I1-I4.
-        return (_averageAnalog[input] * 20.0 / 1023.0) * _gains[input] + _offsets[input];
+        return (_averageAnalog[input] * 20.0 / 1023.0) * pgm_read_float(&_gains[input]) + pgm_read_float(&_offsets[input]);
     }
     else if( input >= V1 && input <= V4 ){
         // Returns average voltage for V1-V4.
-        return (_averageAnalog[input] * 10.0 / 1023.0) * _gains[input] + _offsets[input];
+        return (_averageAnalog[input] * 10.0 / 1023.0) * pgm_read_float(&_gains[input]) + pgm_read_float(&_offsets[input]);
     }
 }
 
 // Handles the averaging of the analog inputs as per the type. (Time or readings)
 void dn24f08::engineAnalogAverage(){
-    if(_iterator < _analogPins){
+    if(_system.analogPinIterator < _analogPins){
         bool valueReached = false;
-        if (_analogAverageType == TIME_MS) {
-            if (millis() - _averageTime_ms[_iterator] > _analogAverageValue) {
+        if (_system.analogAverageType == TIME_MS) {
+            if ((uint16_t)millis() - _averageTime_ms[_system.analogPinIterator] > _analogAverageValue) {
                  valueReached = true;
-                 _averageTime_ms[_iterator] = millis();
+                 _averageTime_ms[_system.analogPinIterator] = millis();
             }
         }
-        else if (_analogAverageType == READINGS) {
-            if (_averageCounter[_iterator] >= _analogAverageValue) {
+        else if (_system.analogAverageType == READINGS) {
+            if (_averageCounter[_system.analogPinIterator] >= _analogAverageValue) {
                 valueReached = true;
             }
         }
         if(valueReached == true){
-            _averageAnalog[_iterator] = (float)_averageSum[_iterator] / _averageCounter[_iterator];
-            _averageSum[_iterator] = 0;
-            _averageCounter[_iterator] = 0;
+            _averageAnalog[_system.analogPinIterator] = (float)_averageSum[_system.analogPinIterator] / _averageCounter[_system.analogPinIterator];
+            _averageSum[_system.analogPinIterator] = 0;
+            _averageCounter[_system.analogPinIterator] = 0;
         } 
         else {
-            _averageSum[_iterator] += analogRead(pgm_read_byte(&_analogInputPins[_iterator]));
-            _averageCounter[_iterator]++;
+            _averageSum[_system.analogPinIterator] += analogRead(pgm_read_byte(&_analogInputPins[_system.analogPinIterator]));
+            _averageCounter[_system.analogPinIterator]++;
         }
-        _iterator++;
+        _system.analogPinIterator++;
     }
     else{
-        _iterator = 0;
+        _system.analogPinIterator = 0;
     }
 }
 
 // Handles the different display types and updating the outputs.
 void dn24f08::engineDisplay(){
-    switch (_displayType) {
+    switch (_display.type) {
         case IDLE:
             displayClear();
             break;
 
         case CLEAR:
             displayClear();
-            _displayType = IDLE;
+            _display.type = IDLE;
             break;
 
         case ANALOG:
-            displayFloat(getAnalogAverage(_displayAnalogPin));
+            displayFloat(getAnalogAverage(_display.analogPin));
             break;
 
         case INTEGER:
@@ -311,49 +318,52 @@ void dn24f08::engineDisplay(){
 // Handles the buttons. Checks if a buttons was pressed, including debounce.
 void dn24f08::engineButtons(){
     for(uint8_t i =0; i < _buttons; i++){
-        if(((_checkButtons >> i) & 1) == true && ((millis() - _checkCache_ms[i]) >=_debounce_ms)){
+        if(((_checkButtons >> i) & 1) == true && (((uint16_t)millis() - _checkCache_ms[i]) >=_debounce_ms)){
             if(digitalRead(pgm_read_byte(&_keys[i]))){
-                _pressed_flags |= (1 << i );
+                _pressedFlags |= (1 << i );
             }
             else{
-                _pressed_flags &= ~(1 << i);
+                _pressedFlags &= ~(1 << i);
             }
+            uint8_t oldSREG = SREG; // Save interrupt state
+            cli();                  // Disable interrupts
             _checkButtons &= ~(1 << i);
+            SREG = oldSREG;         // Restore interrupt state
         }
     }
 }
 
 // Handles incoming serial data.
 void dn24f08::engineCommunication(){
-    if(millis() - _timeoutCache > _timeout && _dataReady == false && _receivingData == true){
+    if((uint16_t)millis() - _timeoutCache > _timeout && _system.dataReady == false && _system.receivingData == true){
         _receivedCharacters[_receivedCharacterIndex] = '\0';
         _receivedCharacterIndex = 0;
-        _receivingData = false;
-        _timedOut = true;
+        _system.receivingData = false;
+        _system.timedOut = true;
     }
     else if (_serialPort.available() > 0) {
         char _receivedCharacter = _serialPort.read();
-        if(_useStartCharacter == false && _receivingData == false){
-            _receivingData = true;
+        if(_system.useStartCharacter == false && _system.receivingData == false){
+            _system.receivingData = true;
             _timeoutCache = millis();
         }
 
-        if (_receivingData == true && _receivedCharacter != _endCharacter) {
+        if (_system.receivingData == true && _receivedCharacter != _endCharacter) {
             _receivedCharacters[_receivedCharacterIndex] = _receivedCharacter;
             _receivedCharacterIndex++;
             if (_receivedCharacterIndex >= _maxCharacters) {
                 _receivedCharacterIndex = _maxCharacters - 1;
             }
         }
-        else if (_receivingData == true && _receivedCharacter == _endCharacter) {
+        else if (_system.receivingData == true && _receivedCharacter == _endCharacter) {
             _receivedCharacters[_receivedCharacterIndex] = '\0';
             _receivedCharacterIndex = 0;
-            _receivingData = false;
-            _timedOut = false;
-            _dataReady = true;
+            _system.receivingData = false;
+            _system.timedOut = false;
+            _system.dataReady = true;
         }
-        else if (_receivedCharacter == _startCharacter && _useStartCharacter == true) {
-            _receivingData = true;
+        else if (_receivedCharacter == _startCharacter && _system.useStartCharacter == true) {
+            _system.receivingData = true;
             _timeoutCache = millis();
         }
     }
@@ -396,14 +406,13 @@ void dn24f08::displayInteger(uint16_t number) {
 
 // Clears the 7 segment display.
 void dn24f08::displayClear() {
-    if(_update){
+    if(_display.update){
         for (uint8_t i = 0; i < 5; i++) {
             setShift(36, i, false);
         }
-        _update = false;
+        _display.update = false;
     }
 }
-
 
 // Print Integer
 void dn24f08::print(int32_t number) {
@@ -425,6 +434,31 @@ void dn24f08::print(float number, uint8_t precision) {
 void dn24f08::println(float number, uint8_t precision) {
     convertFloat(number, precision);
     println(_converter);
+}
+
+void dn24f08::print(const __FlashStringHelper *toPrint) {
+    // Cast the flash pointer to a char pointer
+    const char *p = (const char PROGMEM *)toPrint;
+    uint8_t c;
+    digitalWrite(_rxTxPin, true);
+    delayMicroseconds(500);
+    while (c = pgm_read_byte(p++)) {
+        _serialPort.write(c);
+    }
+    digitalWrite(_rxTxPin, false);
+}
+
+void dn24f08::println(const __FlashStringHelper *toPrint) {
+    // Cast the flash pointer to a char pointer
+    const char *p = (const char PROGMEM *)toPrint;
+    uint8_t c;
+    digitalWrite(_rxTxPin, true);
+    delayMicroseconds(500);
+    while (c = pgm_read_byte(p++)) {
+        _serialPort.write(c);
+    }
+    _serialPort.write('\n');
+    digitalWrite(_rxTxPin, false);
 }
 
 // Print a c-string over RS485
@@ -492,8 +526,8 @@ void dn24f08::convertFloat(float val, uint8_t precision) {
 
 // Returns true if the communication engine received a valid message.
 bool dn24f08::getDataReady(){
-  if (_dataReady == true){
-    _dataReady = false;
+  if (_system.dataReady == true){
+    _system.dataReady = false;
     return true;
   }//
   else{
@@ -503,8 +537,8 @@ bool dn24f08::getDataReady(){
 
 // Returns if there was a timeout.
 bool dn24f08::getTimedOut(){
-  if (_timedOut == true){
-    _timedOut = false;
+  if (_system.timedOut == true){
+    _system.timedOut = false;
     return true;
   }//
   else{
