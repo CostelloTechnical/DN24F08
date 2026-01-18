@@ -166,14 +166,29 @@ class dn24f08 {
         // Clears the 7 segment display.
         void displayClear();
 
-        // Prints an integer.
-        void print(int32_t number);
+        void print(long number);
+        void print(unsigned long number);
+        void println(long number);
+        void println(unsigned long number);
+ 
+        // These handle standard ints, shorts, and bytes automatically
+        void print(int number)              { print((long)number); }
+        void print(unsigned int number)     { print((unsigned long)number); }
+        void print(short number)            { print((long)number); }
+        void print(unsigned short number)   { print((unsigned long)number); }
+        void print(uint8_t number)          { print((unsigned long)number); }
+        void print(bool number)             { print((unsigned long)number); }
+        
+        // Matching println redirects
+        void println(int number)            { println((long)number); }
+        void println(unsigned int number)   { println((unsigned long)number); }
+        void println(short number)          { println((long)number); }
+        void println(unsigned short number) { println((unsigned long)number); }
+        void println(uint8_t number)        { println((unsigned long)number); }
+        void println(bool number)           { println((unsigned long)number); }
 
         // Prints a float. Default precision is 2.
         void print(float number, uint8_t precision = 2);
-        
-        // Prints an integer and newline.
-        void println(int32_t number);
 
         // Prints a float and newline. Default precision is 2.
         void println(float number, uint8_t precision = 2);
@@ -228,10 +243,10 @@ class dn24f08 {
         static const uint8_t _buttons = 4;
         static const uint8_t _keys[_buttons];
  
-        uint8_t _checkButtons = 0;  // This variables holds the state for all the buttons. Values are set using bitwise.
+        volatile uint8_t _checkButtons = 0;  // This variables holds the state for all the buttons. Values are set using bitwise.
         uint8_t _pressedFlags = 0;  // This variables holds the state for all the buttons. Values are set using bitwise.
         uint16_t _checkCache_ms[_buttons] = {0, 0, 0, 0};
-        static const uint16_t _debounce_ms = 250;
+        static const uint16_t _debounce_ms = 100;
 
         static const uint8_t _inData = 2;
         static const uint8_t _inClock = 3;
@@ -259,6 +274,8 @@ class dn24f08 {
         static const uint8_t _analogInputPins[_analogPins];
         static const float _gains[_analogPins];
         static const float _offsets[_analogPins];
+        static const float _analogToCurrent = 0.019550; // 20 / 1023
+        static const float _analogToVoltage= 0.009775;  // 10 / 1023
 
         float _averageAnalog[_analogPins] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
         uint32_t _averageSum[_analogPins] = { 0, 0, 0, 0, 0, 0, 0, 0 };

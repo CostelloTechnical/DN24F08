@@ -241,11 +241,11 @@ bool dn24f08::getInput(uint8_t input){
 float dn24f08::getAnalog(analogInputs input){
     if(input >= I1 && input <= I4){
         // Returns  milliamps for I1-I4.
-        return (analogRead(pgm_read_byte(&_analogInputPins[input])) * 20.0 / 1023.0) * pgm_read_float(&_gains[input]) + pgm_read_float(&_offsets[input]);
+        return (analogRead(pgm_read_byte(&_analogInputPins[input])) * _analogToCurrent) * pgm_read_float(&_gains[input]) + pgm_read_float(&_offsets[input]);
     }
     else if( input >= V1 && input <= V4 ){
         // Returns a voltage for V1-V4.
-        return (analogRead(pgm_read_byte(&_analogInputPins[input])) * 10.0 / 1023.0) * pgm_read_float(&_gains[input]) + pgm_read_float(&_offsets[input]);
+        return (analogRead(pgm_read_byte(&_analogInputPins[input])) * _analogToVoltage) * pgm_read_float(&_gains[input]) + pgm_read_float(&_offsets[input]);
     }
 }
 
@@ -253,11 +253,11 @@ float dn24f08::getAnalog(analogInputs input){
 float dn24f08::getAnalogAverage(analogInputs input){
     if(input >= I1 && input <= I4){
         // Returns average milliamps for I1-I4.
-        return (_averageAnalog[input] * 20.0 / 1023.0) * pgm_read_float(&_gains[input]) + pgm_read_float(&_offsets[input]);
+        return (_averageAnalog[input] * _analogToCurrent) * pgm_read_float(&_gains[input]) + pgm_read_float(&_offsets[input]);
     }
     else if( input >= V1 && input <= V4 ){
         // Returns average voltage for V1-V4.
-        return (_averageAnalog[input] * 10.0 / 1023.0) * pgm_read_float(&_gains[input]) + pgm_read_float(&_offsets[input]);
+        return (_averageAnalog[input] * _analogToVoltage) * pgm_read_float(&_gains[input]) + pgm_read_float(&_offsets[input]);
     }
 }
 
@@ -322,8 +322,8 @@ void dn24f08::engineDisplay(){
 void dn24f08::engineButtons(){
     for(uint8_t i =0; i < _buttons; i++){
         if(((_checkButtons >> i) & 1) == true && (((uint16_t)millis() - _checkCache_ms[i]) >=_debounce_ms)){
-            if(digitalRead(pgm_read_byte(&_keys[i]))){
-                _pressedFlags |= (1 << i );
+            if(!digitalRead(pgm_read_byte(&_keys[i]))){
+                _pressedFlags |= (1 << i);
             }
             else{
                 _pressedFlags &= ~(1 << i);
@@ -417,21 +417,32 @@ void dn24f08::displayClear() {
     }
 }
 
-// Print Integer
-void dn24f08::print(int32_t number) {
-    ltoa(number, _converter, 10); // Standard AVR-libc integer convert
-    print(_converter);            // Calls your existing char* print
-}
-
-void dn24f08::println(int32_t number) {
+// Print Signed Integers
+void dn24f08::print(long number) {
     ltoa(number, _converter, 10);
-    println(_converter);
+    print(_converter);
 }
 
-// Print Float (Uses our new engine)
+void dn24f08::println(long number) {
+    print(number);
+    write('\n');
+}
+
+// Print Unsigned Integers
+void dn24f08::print(unsigned long number) {
+    ultoa(number, _converter, 10);
+    print(_converter);
+}
+
+void dn24f08::println(unsigned long number) {
+    print(number);
+    write('\n');
+}
+
+// Print Float
 void dn24f08::print(float number, uint8_t precision) {
-    convertFloat(number, precision); // Fills _converter
-    print(_converter);               // Sends it
+    convertFloat(number, precision);
+    print(_converter);
 }
 
 void dn24f08::println(float number, uint8_t precision) {
@@ -498,8 +509,8 @@ void dn24f08::convertFloat(float val, uint8_t precision) {
     char *ptr = _converter; // Point to the class-wide buffer
 
     // 1. Handle Special Cases
-    if (isnan(val)) { strcpy(ptr, "NaN"); return; }
-    if (isinf(val)) { strcpy(ptr, "Inf"); return; }
+    if (isnan(val)) { strcpy_P(ptr, PSTR("NaN")); return; }
+    if (isinf(val)) { strcpy_P(ptr, PSTR("Inf")); return; }
     if (precision > 6) precision = 6;
 
     // 2. Calculate Scale (Avoids pow() to save Flash)
