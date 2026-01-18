@@ -70,7 +70,7 @@ dn24f08::dn24f08(){
 }
 
 // Initializer if not intending to use the Serial class.
-void dn24f08::init(){
+void dn24f08::initSystem(){
     // Used by the button ISR to point back to this class.
     _classPointer = this;
 
@@ -120,7 +120,7 @@ void dn24f08::init(){
 
 // Initializer if intending to use the Serial class with a start character and end character.
 void dn24f08::init(uint32_t baud,  char startCharacter, char endCharacter, uint16_t timeout){
-    init();
+    initSystem();
     _serialPort.begin(baud);
     digitalWrite(_rxTxPin, false);
 
@@ -132,7 +132,7 @@ void dn24f08::init(uint32_t baud,  char startCharacter, char endCharacter, uint1
 
 // Initializer if intending to use the Serial class with only an end character.
 void dn24f08::init(uint32_t baud, char endCharacter, uint16_t timeout){
-    init();
+    initSystem();
     _serialPort.begin(baud);
     digitalWrite(_rxTxPin, false);
 
@@ -230,8 +230,11 @@ uint8_t dn24f08::getInputs(){
 
 // Returns the state of an input.
 bool dn24f08::getInput(uint8_t input){
-    getInputs();
-    return (_inputValue & (1 << input)) == 0;
+    if (input > 0 && input <= 8) { 
+        getInputs();
+        return (_inputValue & (1 << (input - 1))) == 0;
+    }
+    return false; // Return false if input is invalid
 }
 
 // Returns the value of an analog input.
@@ -445,6 +448,7 @@ void dn24f08::print(const __FlashStringHelper *toPrint) {
     while (c = pgm_read_byte(p++)) {
         _serialPort.write(c);
     }
+    _serialPort.flush();
     digitalWrite(_rxTxPin, false);
 }
 
@@ -458,6 +462,7 @@ void dn24f08::println(const __FlashStringHelper *toPrint) {
         _serialPort.write(c);
     }
     _serialPort.write('\n');
+    _serialPort.flush();
     digitalWrite(_rxTxPin, false);
 }
 
@@ -466,6 +471,7 @@ void dn24f08::print(const char *toPrint){
     digitalWrite(_rxTxPin, true);
     delayMicroseconds(500);
     _serialPort.print(toPrint);
+    _serialPort.flush();
     digitalWrite(_rxTxPin, false);
 }
 
@@ -475,6 +481,16 @@ void dn24f08::println(const char *toPrint){
     delayMicroseconds(500);
     _serialPort.print(toPrint);
     _serialPort.write('\n');
+    _serialPort.flush();
+    digitalWrite(_rxTxPin, false);
+}
+
+// Send a single character over RS485
+void dn24f08::write(char toPrint){
+    digitalWrite(_rxTxPin, true);
+    delayMicroseconds(500);
+    _serialPort.write(toPrint);
+    _serialPort.flush();
     digitalWrite(_rxTxPin, false);
 }
 

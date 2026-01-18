@@ -5,7 +5,7 @@ dn24f08 plc;
 uint32_t printTimeCache_ms = 0;
 
 void setup() {
-  plc.init();
+  plc.init(115200);
 
   /* 
     Optional - Only for use with the engineAnalogAverage() function. 
@@ -25,7 +25,12 @@ void loop() {
   */
   plc.engineAnalogAverage();
   if (millis() - printTimeCache_ms > 1000) {
+    plc.print(F("I1 = "));
+    plc.println(plc.getAnalogAverage(I1));
+    plc.write('\r');
+    plc.print(F("V1 = "));
     plc.println(plc.getAnalogAverage(V1));
+    plc.write('\r');
     printTimeCache_ms = millis();
   }
 }

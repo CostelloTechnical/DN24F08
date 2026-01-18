@@ -93,14 +93,11 @@ class dn24f08 {
         // Used to store the previous PIND value to detect a change.
         static volatile uint8_t _previousPortD;
 
-        // Initializer if not intending to use the Serial class.
-        void init();
-
         // Initializer if intending to use the Serial class with a start character and end character.
         void init(uint32_t baud, char startCharacter, char endCharacter, uint16_t timeout = 3000);
 
         // Initializer if intending to use the Serial class with only an end character.
-        void init(uint32_t baud, char endCharacter, uint16_t timeout = 3000);
+        void init(uint32_t baud = 9600, char endCharacter = '\n', uint16_t timeout = 3000);
 
         // Sets the value of the 8 outputs in binary. (Updated with display engine)
         void setOutputs(uint8_t outputs);
@@ -191,6 +188,9 @@ class dn24f08 {
         // Print a c-string over RS485 with a newline
         void println(const char *toPrint);
 
+        // Send a single character over RS485
+        void write( char toPrint);
+
         // Returns true if the communication engine received a valid message.
         bool getDataReady();
 
@@ -201,6 +201,9 @@ class dn24f08 {
         char* getReceivedCharacters();
 
     private:
+        // Initializer for Pin modes etc...
+        void initSystem();
+
         // Converts float to string and stores it in _converter
         void convertFloat(float val, uint8_t precision);
 

@@ -6,7 +6,7 @@
 
 // Define your custom buffer size here.
 // Arduino uses 64 bytes. If you only receive short commands, 16 or 32 is enough.
-#define RX_BUFFER_SIZE 50 
+#define RX_BUFFER_SIZE 50
 
 extern "C" void USART_RX_vect(void);
 
@@ -14,7 +14,7 @@ class bareSerial {
 public:
     // Initialize the UART with a specific baud rate
     void begin(long baud) {
-        // [FIX] Enable Double Speed Operation (U2X0)
+        // Enable Double Speed Operation (U2X0)
         // This reduces the clock divisor from 16 to 8.
         // Required for 115200 baud on 16MHz Arduino to keep error < 2.5%.
         UCSR0A = (1 << U2X0);
@@ -52,6 +52,16 @@ public:
         while (*str) {
             write(*str++);
         }
+    }
+
+    // Wait until all data has been physically transmitted
+    void flush() {
+        // Clear the TXC0 flag first (to ensure we don't read an old flag state)
+        // Note: Writing a logic 1 to the bit clears it in AVR.
+        UCSR0A |= (1 << TXC0);
+        
+        // Wait for the Transmit Complete flag (TXC0)
+        while (!(UCSR0A & (1 << TXC0)));
     }
 
     // Check if data is available in the buffer
