@@ -1,6 +1,16 @@
 #include "dn24f08.h"
 
-dn24f08 plc;
+const float gains[dn24f08::_analogPins] PROGMEM = { 
+    1.0, 1.0, 1.0, 1.0,  // Current input gains: I1, I2, I3, I4.
+    1.0, 1.0, 1.0, 1.0   // Voltage input gains: V1, V2, V3, V4.
+};
+
+const float offsets[dn24f08::_analogPins] PROGMEM = { 
+    0.0, 0.0, 0.0, 0.0,  // Current input offsets: I1, I2, I3, I4.
+    0.0, 0.0, 0.0, 0.0   // Voltage input offsets: V1, V2, V3, V4.
+};
+
+dn24f08 plc (gains, offsets);
 
 uint32_t printTimeCache_ms = 0;
 

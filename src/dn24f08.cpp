@@ -28,12 +28,12 @@
 #include "dn24f08.h"
 #include <avr/pgmspace.h>
 
-const float dn24f08::_gains[dn24f08::_analogPins] PROGMEM = { 
+static const float _defaultGains[dn24f08::_analogPins] PROGMEM = { 
     1.0, 1.0, 1.0, 1.0,  // Current input gains.
     1.0, 1.0, 1.0, 1.0   // Voltage input gains.
 };
 
-const float dn24f08::_offsets[dn24f08::_analogPins] PROGMEM = { 
+static const float _defaultOffsets[dn24f08::_analogPins] PROGMEM = { 
     0.0, 0.0, 0.0, 0.0,  // Current input offsets.
     0.0, 0.0, 0.0, 0.0   // Voltage input offsets.
 };
@@ -64,9 +64,12 @@ dn24f08* dn24f08::_classPointer = nullptr;
 volatile uint8_t dn24f08::_previousPortB = 0;
 volatile uint8_t dn24f08::_previousPortD = 0;
 
-dn24f08::dn24f08(){
+dn24f08::dn24f08(const float* gains, const float* offsets){
     _system = {};
     _display = {};
+
+    _offsets = (offsets !=NULL) ? offsets : _defaultOffsets;
+    _gains   = (gains   !=NULL) ? gains   : _defaultGains;
 }
 
 // Initializer if not intending to use the Serial class.
@@ -257,7 +260,8 @@ float dn24f08::getAnalogAverage(analogInputs input){
     }
     else if( input >= V1 && input <= V4 ){
         // Returns average voltage for V1-V4.
-        return (_averageAnalog[input] * _analogToVoltage) * pgm_read_float(&_gains[input]) + pgm_read_float(&_offsets[input]);
+        //return (_averageAnalog[input] * _analogToVoltage) * pgm_read_float(&_gains[input]) + pgm_read_float(&_offsets[input]);
+        return pgm_read_float(&_offsets[input]);
     }
 }
 

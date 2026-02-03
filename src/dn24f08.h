@@ -85,13 +85,15 @@ enum engineDisplayType : uint8_t{
 
 class dn24f08 {
     public:
-        dn24f08();
+        dn24f08(const float* gains = NULL, const float* offsets = NULL);
         static dn24f08* _classPointer;
         // Used to store the previous PINB value to detect a change.
         static volatile uint8_t _previousPortB;
 
         // Used to store the previous PIND value to detect a change.
         static volatile uint8_t _previousPortD;
+
+        static const uint8_t _analogPins = 8;
 
         // Initializer if intending to use the Serial class with a start character and end character.
         void init(uint32_t baud, char startCharacter, char endCharacter, uint16_t timeout = 3000);
@@ -244,7 +246,7 @@ class dn24f08 {
         static const uint8_t _keys[_buttons];
  
         volatile uint8_t _checkButtons = 0;  // This variables holds the state for all the buttons. Values are set using bitwise.
-        uint8_t _pressedFlags = 0;  // This variables holds the state for all the buttons. Values are set using bitwise.
+        uint8_t _pressedFlags = 0;           // This variables holds the state for all the buttons. Values are set using bitwise.
         uint16_t _checkCache_ms[_buttons] = {0, 0, 0, 0};
         static const uint16_t _debounce_ms = 100;
 
@@ -270,12 +272,11 @@ class dn24f08 {
 
         static const uint8_t _decimalPoint = 0x1;
 
-        static const uint8_t _analogPins = 8;
         static const uint8_t _analogInputPins[_analogPins];
-        static const float _gains[_analogPins];
-        static const float _offsets[_analogPins];
+        const float* _gains;
+        const float* _offsets;
         static const float _analogToCurrent = 0.019550; // 20 / 1023
-        static const float _analogToVoltage= 0.009775;  // 10 / 1023
+        static const float _analogToVoltage = 0.009775; // 10 / 1023
 
         float _averageAnalog[_analogPins] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
         uint32_t _averageSum[_analogPins] = { 0, 0, 0, 0, 0, 0, 0, 0 };
