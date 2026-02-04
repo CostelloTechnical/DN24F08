@@ -260,8 +260,7 @@ float dn24f08::getAnalogAverage(analogInputs input){
     }
     else if( input >= V1 && input <= V4 ){
         // Returns average voltage for V1-V4.
-        //return (_averageAnalog[input] * _analogToVoltage) * pgm_read_float(&_gains[input]) + pgm_read_float(&_offsets[input]);
-        return pgm_read_float(&_offsets[input]);
+        return (_averageAnalog[input] * _analogToVoltage) * pgm_read_float(&_gains[input]) + pgm_read_float(&_offsets[input]);
     }
 }
 
